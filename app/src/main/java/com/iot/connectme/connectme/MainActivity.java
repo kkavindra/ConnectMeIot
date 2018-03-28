@@ -4,11 +4,17 @@ import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.design.widget.BottomNavigationView;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.MenuItem;
 import android.widget.TextView;
+import com.iot.mqtt.*;
+
+
+
 
 public class MainActivity extends AppCompatActivity {
 
+    private static final String TAG = "MainActivity" ;
     private TextView mTextMessage;
 
     private BottomNavigationView.OnNavigationItemSelectedListener mOnNavigationItemSelectedListener
@@ -39,6 +45,13 @@ public class MainActivity extends AppCompatActivity {
         mTextMessage = (TextView) findViewById(R.id.message);
         BottomNavigationView navigation = (BottomNavigationView) findViewById(R.id.navigation);
         navigation.setOnNavigationItemSelectedListener(mOnNavigationItemSelectedListener);
+        try {
+            String mqttBroker = new String("tcp://192.168.52.130:1883");
+
+        }catch (Exception e){
+            Log.d(TAG,e.getMessage());
+        }
+
     }
 
 }
