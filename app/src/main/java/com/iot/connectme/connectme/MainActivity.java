@@ -24,7 +24,7 @@ public class MainActivity extends AppCompatActivity {
     private TextView mTextMessage;
     private TextView mTextSndMessage,mTextRecMessage,mTextTopic,mTextQos,mTextMqttBroker,mTextClientId;
     private Button mButtonSendCommand;
-    MqttClient sampleClient;
+    MqttClient mqttAppClient;
 
     private BottomNavigationView.OnNavigationItemSelectedListener mOnNavigationItemSelectedListener
             = new BottomNavigationView.OnNavigationItemSelectedListener() {
@@ -34,12 +34,6 @@ public class MainActivity extends AppCompatActivity {
             switch (item.getItemId()) {
                 case R.id.navigation_home:
                     mTextMessage.setText(R.string.title_home);
-                    try {
-                        sendMessage("test",1,"/test");
-                    } catch (MqttException e) {
-                        e.printStackTrace();
-                    }
-
                     return true;
                 case R.id.navigation_dashboard:
                     mTextMessage.setText(R.string.title_dashboard);
@@ -89,16 +83,16 @@ public class MainActivity extends AppCompatActivity {
 
     private boolean connectToBroker(String broker) {
 
-        if(sampleClient==null){
+        if(mqttAppClient ==null){
 
             MemoryPersistence persistence = new MemoryPersistence();
 
             try {
-                sampleClient = new MqttClient(broker, mTextClientId.getText().toString(), persistence);
+                mqttAppClient = new MqttClient(broker, mTextClientId.getText().toString(), persistence);
                 MqttConnectOptions connOpts = new MqttConnectOptions();
                 connOpts.setCleanSession(true);
                 System.out.println("Connecting to broker: " + broker);
-                sampleClient.connect(connOpts);
+                mqttAppClient.connect(connOpts);
                 Toast.makeText(getApplicationContext(), "Connected to broker.", Toast.LENGTH_LONG).show();
             }catch(Exception e){
                 e.printStackTrace();
@@ -119,7 +113,7 @@ public class MainActivity extends AppCompatActivity {
             System.out.println("Publishing message: " + content);
             MqttMessage message = new MqttMessage(content.getBytes());
             message.setQos(qos);
-            sampleClient.publish(topic, message);
+            mqttAppClient.publish(topic, message);
             System.out.println("Message published");
             Toast.makeText(getApplicationContext(), "Message publisehd.",Toast.LENGTH_LONG ).show();
         }
@@ -130,7 +124,7 @@ public class MainActivity extends AppCompatActivity {
         if(connectToBroker(mTextMqttBroker.getText().toString())) {
             MqttMessage message = new MqttMessage();
             message.setQos(qos);
-            sampleClient.subscribe(topic);
+            mqttAppClient.subscribe(topic);
             Toast.makeText(getApplicationContext(), "Topic Subscribed.",Toast.LENGTH_LONG ).show();
 
         }
@@ -139,7 +133,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void getMessage(){
         try {
-            sampleClient.disconnect();
+            mqttAppClient.disconnect();
             System.out.println("Disconnected");
             System.exit(0);
         } catch(MqttException me) {
