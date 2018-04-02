@@ -1,21 +1,19 @@
-package com.iot.mqtt.client;
+package com.iot.connectme.connectme;
 
 import android.content.Context;
-
-import java.net.URL;
 
 /**
  * Created by kulatkav on 3/28/2018.
  */
 
 public interface IotClient {
-    String url=null;
-    boolean connectionStatus=false;
     boolean connect();
     boolean disconnect();
     boolean connectionStatus();
 
-    void IotClient(Context context,String url);
+    void iotClient(Context context, String clientId,String url);
     void showMessage(String message);
+    void sendMessage(String topic,String content,int qos);
+    void getMessage();
 
 }
