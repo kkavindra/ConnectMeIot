@@ -4,19 +4,16 @@ import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.design.widget.BottomNavigationView;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.Button;
 import android.widget.TextView;
+import android.widget.Toast;
 
-import org.eclipse.paho.android.service.MqttAndroidClient;
-import org.eclipse.paho.client.mqttv3.IMqttActionListener;
-import org.eclipse.paho.client.mqttv3.IMqttToken;
 import org.eclipse.paho.client.mqttv3.MqttClient;
 import org.eclipse.paho.client.mqttv3.MqttException;
 
-import org.eclipse.paho.client.mqttv3.MqttClient;
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
-import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 
@@ -25,6 +22,9 @@ public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = "MainActivity" ;
     private TextView mTextMessage;
+    private TextView mTextSndMessage,mTextRecMessage,mTextTopic,mTextQos,mTextMqttBroker,mTextClientId;
+    private Button mButtonSendCommand;
+    MqttClient sampleClient;
 
     private BottomNavigationView.OnNavigationItemSelectedListener mOnNavigationItemSelectedListener
             = new BottomNavigationView.OnNavigationItemSelectedListener() {
@@ -34,7 +34,12 @@ public class MainActivity extends AppCompatActivity {
             switch (item.getItemId()) {
                 case R.id.navigation_home:
                     mTextMessage.setText(R.string.title_home);
-                    mqttSimulate();
+                    try {
+                        sendMessage("test",1,"/test");
+                    } catch (MqttException e) {
+                        e.printStackTrace();
+                    }
+
                     return true;
                 case R.id.navigation_dashboard:
                     mTextMessage.setText(R.string.title_dashboard);
@@ -47,39 +52,82 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        //variables to accesss the view items
         mTextMessage = (TextView) findViewById(R.id.message);
+        mTextSndMessage = (TextView) findViewById(R.id.mTextSndMessage);
+        mTextRecMessage = (TextView) findViewById(R.id.mTextRecMessage);
+        mTextTopic      =  (TextView) findViewById(R.id.mTextTopic);
+        mTextQos        = (TextView) findViewById(R.id.mTextQos);
+        mTextMqttBroker = (TextView) findViewById(R.id.mTextMqttBroker);
+        mTextClientId = (TextView) findViewById(R.id.mTextClientId);
+        mButtonSendCommand = (Button) findViewById(R.id.mButtonSendCommand);
+
+
         BottomNavigationView navigation = (BottomNavigationView) findViewById(R.id.navigation);
         navigation.setOnNavigationItemSelectedListener(mOnNavigationItemSelectedListener);
+
+        mButtonSendCommand.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                try {
+                    sendMessage(mTextSndMessage.getText().toString(),Integer.parseInt(mTextQos.getText().toString()),mTextTopic.getText().toString());
+                } catch (MqttException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+
+
+    }
+
+    private boolean connectToBroker(String broker) {
+
+        if(sampleClient==null){
+
+            MemoryPersistence persistence = new MemoryPersistence();
+
+            try {
+                sampleClient = new MqttClient(broker, mTextClientId.getText().toString(), persistence);
+                MqttConnectOptions connOpts = new MqttConnectOptions();
+                connOpts.setCleanSession(true);
+                System.out.println("Connecting to broker: " + broker);
+                sampleClient.connect(connOpts);
+                Toast.makeText(getApplicationContext(), "Connected to broker.", Toast.LENGTH_LONG).show();
+            }catch(Exception e){
+                e.printStackTrace();
+                return false;
+            }
+            return true;
+        } else {
+            return true;
+        }
 
 
 
     }
 
-    private void mqttSimulate(){
-        String topic        = "MQTT Examples";
-        String content      = "Message from MqttPublishSample";
-        int qos             = 2;
-        String broker       = "tcp://192.168.52.131:1883";
-        String clientId     = "JavaSample";
-        MemoryPersistence persistence = new MemoryPersistence();
-
-        try {
-            MqttClient sampleClient = new MqttClient(broker, clientId, persistence);
-            MqttConnectOptions connOpts = new MqttConnectOptions();
-            connOpts.setCleanSession(true);
-            System.out.println("Connecting to broker: "+broker);
-            sampleClient.connect(connOpts);
+    private void sendMessage(String content,int qos,String topic) throws MqttException {
+        if(connectToBroker(mTextMqttBroker.getText().toString())) {
             System.out.println("Connected");
-            System.out.println("Publishing message: "+content);
+            System.out.println("Publishing message: " + content);
             MqttMessage message = new MqttMessage(content.getBytes());
             message.setQos(qos);
             sampleClient.publish(topic, message);
             System.out.println("Message published");
+            Toast.makeText(getApplicationContext(), "Message publisehd.",Toast.LENGTH_LONG ).show();
+        }
+
+    }
+
+    private void getMessage(){
+        try {
             sampleClient.disconnect();
             System.out.println("Disconnected");
             System.exit(0);
@@ -91,16 +139,9 @@ public class MainActivity extends AppCompatActivity {
             System.out.println("excep "+me);
             me.printStackTrace();
         }
-
-        /*
-        String broker       = "tcp://iot.eclipse.org:1883";
-        String clientId     = "JavaSample";
-        MqttClientImplementation mqttClientImplementation = new MqttClientImplementation();
-        mqttClientImplementation.iotClient(getApplicationContext(),broker,clientId);
-        mqttClientImplementation.connect();
-        mqttClientImplementation.sendMessage("mytopic","my conent",1);
-        */
     }
+
+
 
 
 }

@@ -55,16 +55,17 @@ public class MqttClientImplementation extends MqttConnectMeClient {
 
     @Override
     public boolean connect() {
-
         try {
             mqttClient = new MqttClient(url, clientId, persistence);
             MqttConnectOptions connOpts = new MqttConnectOptions();
             connOpts.setCleanSession(true);
+            showMessage("Connected to MQTT broker.");
         } catch (Exception e){
-            showMessage("Error connectinv to MQTT broker.");
+            showMessage("Error connecting to MQTT broker.");
+
 
         }
-        return super.connect();
+        return true;
     }
 
     @Override
