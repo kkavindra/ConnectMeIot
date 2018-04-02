@@ -126,6 +126,17 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    private void receiveMessage(int qos,String topic) throws MqttException {
+        if(connectToBroker(mTextMqttBroker.getText().toString())) {
+            MqttMessage message = new MqttMessage();
+            message.setQos(qos);
+            sampleClient.subscribe(topic);
+            Toast.makeText(getApplicationContext(), "Topic Subscribed.",Toast.LENGTH_LONG ).show();
+
+        }
+
+    }
+
     private void getMessage(){
         try {
             sampleClient.disconnect();
