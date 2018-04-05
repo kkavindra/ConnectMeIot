@@ -10,6 +10,8 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
+import org.eclipse.paho.client.mqttv3.MqttCallback;
 import org.eclipse.paho.client.mqttv3.MqttClient;
 import org.eclipse.paho.client.mqttv3.MqttException;
 
@@ -18,12 +20,12 @@ import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements MqttCallback {
 
     private static final String TAG = "MainActivity" ;
     private TextView mTextMessage;
-    private TextView mTextSndMessage,mTextRecMessage,mTextTopic,mTextQos,mTextMqttBroker,mTextClientId;
-    private Button mButtonSendCommand;
+    private TextView mTextSndMessage,mTextRecMessage, mTextTopicSend,mTextQos,mTextMqttBroker,mTextClientId,mTextTopicReceive;
+    private Button mButtonSendCommand,mButtonRecIns;
     MqttClient mqttAppClient;
 
     private BottomNavigationView.OnNavigationItemSelectedListener mOnNavigationItemSelectedListener
@@ -57,11 +59,13 @@ public class MainActivity extends AppCompatActivity {
         mTextMessage = (TextView) findViewById(R.id.message);
         mTextSndMessage = (TextView) findViewById(R.id.mTextSndMessage);
         mTextRecMessage = (TextView) findViewById(R.id.mTextRecMessage);
-        mTextTopic      =  (TextView) findViewById(R.id.mTextTopic);
+        mTextTopicSend =  (TextView) findViewById(R.id.mTextTopicSend);
+        mTextTopicReceive =  (TextView) findViewById(R.id.mTextTopicReceive);
         mTextQos        = (TextView) findViewById(R.id.mTextQos);
         mTextMqttBroker = (TextView) findViewById(R.id.mTextMqttBroker);
         mTextClientId = (TextView) findViewById(R.id.mTextClientId);
         mButtonSendCommand = (Button) findViewById(R.id.mButtonSendCommand);
+        mButtonRecIns = (Button)findViewById(R.id.mButtonRecIns);
 
 
         BottomNavigationView navigation = (BottomNavigationView) findViewById(R.id.navigation);
@@ -71,7 +75,19 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 try {
-                    sendMessage(mTextSndMessage.getText().toString(),Integer.parseInt(mTextQos.getText().toString()),mTextTopic.getText().toString());
+                    sendMessage(mTextSndMessage.getText().toString(),Integer.parseInt(mTextQos.getText().toString()), mTextTopicSend.getText().toString());
+                } catch (MqttException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+
+
+        mButtonRecIns.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                try {
+                    receiveMessageForTopic(Integer.parseInt(mTextQos.getText().toString()),mTextTopicReceive.getText().toString());
                 } catch (MqttException e) {
                     e.printStackTrace();
                 }
@@ -86,18 +102,19 @@ public class MainActivity extends AppCompatActivity {
         if(mqttAppClient ==null){
 
             MemoryPersistence persistence = new MemoryPersistence();
+                try {
+                    mqttAppClient = new MqttClient(broker, mTextClientId.getText().toString(), persistence);
+                    MqttConnectOptions connOpts = new MqttConnectOptions();
+                    connOpts.setCleanSession(true);
+                    connOpts.setConnectionTimeout(10000);
+                    System.out.println("Connecting to broker: " + broker);
+                    mqttAppClient.connect(connOpts);
+                    Toast.makeText(getApplicationContext(), "Connected to broker.", Toast.LENGTH_LONG).show();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    return false;
+                }
 
-            try {
-                mqttAppClient = new MqttClient(broker, mTextClientId.getText().toString(), persistence);
-                MqttConnectOptions connOpts = new MqttConnectOptions();
-                connOpts.setCleanSession(true);
-                System.out.println("Connecting to broker: " + broker);
-                mqttAppClient.connect(connOpts);
-                Toast.makeText(getApplicationContext(), "Connected to broker.", Toast.LENGTH_LONG).show();
-            }catch(Exception e){
-                e.printStackTrace();
-                return false;
-            }
             return true;
         } else {
             return true;
@@ -120,33 +137,30 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    private void receiveMessage(int qos,String topic) throws MqttException {
+    private void receiveMessageForTopic(int qos,String topic) throws MqttException {
         if(connectToBroker(mTextMqttBroker.getText().toString())) {
-            MqttMessage message = new MqttMessage();
-            message.setQos(qos);
-            mqttAppClient.subscribe(topic);
+            mqttAppClient.subscribe(topic,qos);
             Toast.makeText(getApplicationContext(), "Topic Subscribed.",Toast.LENGTH_LONG ).show();
-
         }
 
     }
 
-    private void getMessage(){
-        try {
-            mqttAppClient.disconnect();
-            System.out.println("Disconnected");
-            System.exit(0);
-        } catch(MqttException me) {
-            System.out.println("reason "+me.getReasonCode());
-            System.out.println("msg "+me.getMessage());
-            System.out.println("loc "+me.getLocalizedMessage());
-            System.out.println("cause "+me.getCause());
-            System.out.println("excep "+me);
-            me.printStackTrace();
-        }
+
+
+    @Override
+    public void connectionLost(Throwable cause) {
+
     }
 
+    @Override
+    public void messageArrived(String topic, MqttMessage message) throws Exception {
+        System.out.println("  Topic:\t" + topic +
+                "  Message:\t" + new String(message.getPayload()) +
+                "  QoS:\t" + message.getQos());
+    }
 
+    @Override
+    public void deliveryComplete(IMqttDeliveryToken token) {
 
-
+    }
 }
